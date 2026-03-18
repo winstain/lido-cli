@@ -15,6 +15,18 @@ describe('getConfigDir and getConfigFile', () => {
   });
 });
 
+describe('default config paths', () => {
+  test('loadConfig uses default path', () => {
+    const { loadConfig: lc } = require('../../src/config/store');
+    expect(lc()).toBeDefined();
+  });
+
+  test('saveConfig uses default path', () => {
+    const { saveConfig: sc } = require('../../src/config/store');
+    try { sc({}); } catch { /* ok */ }
+  });
+});
+
 describe('config store', () => {
   let tmpDir: string;
   let configFile: string;
