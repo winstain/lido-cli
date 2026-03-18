@@ -4,7 +4,7 @@
   "description": "CLI for interacting with the Lido staking protocol",
   "main": "dist/index.js",
   "bin": {
-    "lido": "./dist/index.js"
+    "lido": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -19,8 +19,16 @@
     "ethereum",
     "cli"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "winstain",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winstain/lido-cli.git"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "commonjs",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
