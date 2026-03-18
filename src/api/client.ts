@@ -1,7 +1,25 @@
-import { createPublicClient, http, formatEther, parseEther, type PublicClient, type Address } from 'viem';
+import {
+  createPublicClient,
+  http,
+  formatEther,
+  parseEther,
+  encodeFunctionData,
+  type PublicClient,
+  type Address,
+} from 'viem';
 import { mainnet } from 'viem/chains';
 import { CONTRACTS } from '../config/contracts';
 import { stETHAbi, wstETHAbi, withdrawalQueueAbi } from '../config/abis';
+
+export interface UnsignedEvmTx {
+  to: Address;
+  data: `0x${string}`;
+  value: string;
+  chainId: number;
+  from?: Address;
+  description?: string;
+  note?: string;
+}
 
 export class LidoClient {
   private client: PublicClient;
@@ -44,7 +62,6 @@ export class LidoClient {
       abi: wstETHAbi,
       functionName: 'stEthPerToken',
     });
-    // Compute inverse: wstETH per stETH = 1e18 * 1e18 / stEthPerToken
     const wstEthPerStEth = (BigInt(10 ** 18) * BigInt(10 ** 18)) / stEthPerToken;
     return {
       stEthPerWstEth: formatEther(stEthPerToken),
@@ -82,12 +99,14 @@ export class LidoClient {
   }
 
   async getWithdrawalRequests(address: Address): Promise<bigint[]> {
-    return [...await this.client.readContract({
-      address: CONTRACTS.withdrawalQueue,
-      abi: withdrawalQueueAbi,
-      functionName: 'getWithdrawalRequests',
-      args: [address],
-    })];
+    return [
+      ...(await this.client.readContract({
+        address: CONTRACTS.withdrawalQueue,
+        abi: withdrawalQueueAbi,
+        functionName: 'getWithdrawalRequests',
+        args: [address],
+      })),
+    ];
   }
 
   async getWithdrawalStatus(requestIds: bigint[]): Promise<
@@ -132,39 +151,108 @@ export class LidoClient {
     };
   }
 
-  // Build transaction calldata (does not execute)
-  buildStakeTransaction(amount: string, referral: Address = '0x0000000000000000000000000000000000000000') {
+  private withCommonTxFields(
+    tx: Omit<UnsignedEvmTx, 'chainId'>,
+    from?: Address,
+  ): UnsignedEvmTx {
     return {
-      to: CONTRACTS.stETH,
-      value: parseEther(amount).toString(),
-      data: `submit(${referral})`,
-      description: `Stake ${amount} ETH via Lido to receive stETH`,
+      ...tx,
+      chainId: mainnet.id,
+      ...(from ? { from } : {}),
     };
   }
 
-  buildWrapTransaction(stETHAmount: string) {
-    return {
-      to: CONTRACTS.wstETH,
-      data: `wrap(${parseEther(stETHAmount).toString()})`,
-      description: `Wrap ${stETHAmount} stETH into wstETH`,
-      note: 'Requires stETH approval for wstETH contract first',
-    };
+  buildStakeTransaction(
+    amount: string,
+    referral: Address = '0x0000000000000000000000000000000000000000',
+    from?: Address,
+  ): UnsignedEvmTx {
+    const data = encodeFunctionData({
+      abi: stETHAbi,
+      functionName: 'submit',
+      args: [referral],
+    });
+
+    return this.withCommonTxFields(
+      {
+        to: CONTRACTS.stETH,
+        value: parseEther(amount).toString(),
+        data,
+        description: `Stake ${amount} ETH via Lido to receive stETH`,
+      },
+      from,
+    );
   }
 
-  buildUnwrapTransaction(wstETHAmount: string) {
-    return {
-      to: CONTRACTS.wstETH,
-      data: `unwrap(${parseEther(wstETHAmount).toString()})`,
-      description: `Unwrap ${wstETHAmount} wstETH back to stETH`,
-    };
+  buildStEthApproveTransaction(amount: string, spender: Address, from?: Address): UnsignedEvmTx {
+    const data = encodeFunctionData({
+      abi: stETHAbi,
+      functionName: 'approve',
+      args: [spender, parseEther(amount)],
+    });
+
+    return this.withCommonTxFields(
+      {
+        to: CONTRACTS.stETH,
+        value: '0',
+        data,
+        description: `Approve ${amount} stETH for ${spender}`,
+      },
+      from,
+    );
   }
 
-  buildWithdrawTransaction(stETHAmount: string, owner: Address) {
-    return {
-      to: CONTRACTS.withdrawalQueue,
-      data: `requestWithdrawals([${parseEther(stETHAmount).toString()}], ${owner})`,
-      description: `Request withdrawal of ${stETHAmount} stETH to ETH`,
-      note: 'Requires stETH approval for withdrawal queue contract first',
-    };
+  buildWrapTransaction(stETHAmount: string, from?: Address): UnsignedEvmTx {
+    const data = encodeFunctionData({
+      abi: wstETHAbi,
+      functionName: 'wrap',
+      args: [parseEther(stETHAmount)],
+    });
+
+    return this.withCommonTxFields(
+      {
+        to: CONTRACTS.wstETH,
+        value: '0',
+        data,
+        description: `Wrap ${stETHAmount} stETH into wstETH`,
+      },
+      from,
+    );
+  }
+
+  buildUnwrapTransaction(wstETHAmount: string, from?: Address): UnsignedEvmTx {
+    const data = encodeFunctionData({
+      abi: wstETHAbi,
+      functionName: 'unwrap',
+      args: [parseEther(wstETHAmount)],
+    });
+
+    return this.withCommonTxFields(
+      {
+        to: CONTRACTS.wstETH,
+        value: '0',
+        data,
+        description: `Unwrap ${wstETHAmount} wstETH back to stETH`,
+      },
+      from,
+    );
+  }
+
+  buildWithdrawTransaction(stETHAmount: string, owner: Address, from?: Address): UnsignedEvmTx {
+    const data = encodeFunctionData({
+      abi: withdrawalQueueAbi,
+      functionName: 'requestWithdrawals',
+      args: [[parseEther(stETHAmount)], owner],
+    });
+
+    return this.withCommonTxFields(
+      {
+        to: CONTRACTS.withdrawalQueue,
+        value: '0',
+        data,
+        description: `Request withdrawal of ${stETHAmount} stETH to ETH`,
+      },
+      from,
+    );
   }
 }
