@@ -484,7 +484,7 @@ describe('commands', () => {
       expect(output).toContain('No pending withdrawal requests found');
     });
 
-    test('status pretty with requests', async () => {
+    test('status pretty with finalized request', async () => {
       mockGetWithdrawalRequests.mockResolvedValue([BigInt(100)]);
       mockGetWithdrawalStatus.mockResolvedValue([
         {
@@ -493,6 +493,42 @@ describe('commands', () => {
           owner: WALLET,
           timestamp: BigInt(1700000000),
           isFinalized: true,
+          isClaimed: false,
+        },
+      ]);
+      const cmd = makeWithdrawCommand();
+      await cmd.parseAsync(['status', '--wallet', WALLET, '--pretty'], { from: 'user' });
+      const output = stdoutOutput.join('\n');
+      expect(output).toContain('Withdrawal Requests');
+    });
+
+    test('status pretty with claimed request', async () => {
+      mockGetWithdrawalRequests.mockResolvedValue([BigInt(99)]);
+      mockGetWithdrawalStatus.mockResolvedValue([
+        {
+          amountOfStETH: BigInt('1000000000000000000'),
+          amountOfShares: BigInt('800000000000000000'),
+          owner: WALLET,
+          timestamp: BigInt(1700000000),
+          isFinalized: true,
+          isClaimed: true,
+        },
+      ]);
+      const cmd = makeWithdrawCommand();
+      await cmd.parseAsync(['status', '--wallet', WALLET, '--pretty'], { from: 'user' });
+      const output = stdoutOutput.join('\n');
+      expect(output).toContain('Withdrawal Requests');
+    });
+
+    test('status pretty with pending request', async () => {
+      mockGetWithdrawalRequests.mockResolvedValue([BigInt(101)]);
+      mockGetWithdrawalStatus.mockResolvedValue([
+        {
+          amountOfStETH: BigInt('2000000000000000000'),
+          amountOfShares: BigInt('1600000000000000000'),
+          owner: WALLET,
+          timestamp: BigInt(1700000000),
+          isFinalized: false,
           isClaimed: false,
         },
       ]);
