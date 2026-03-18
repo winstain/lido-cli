@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { type Address, formatEther } from 'viem';
 import chalk from 'chalk';
 import { LidoClient } from '../api/client';
+import { CONTRACTS } from '../config/contracts';
 import { getRpcUrl } from '../config/store';
 import { formatEth, formatTimestamp, header, row, jsonError } from '../utils/format';
 
@@ -74,6 +75,7 @@ export function makeWithdrawCommand(): Command {
     .description('Build a transaction to request a withdrawal')
     .requiredOption('--amount <stETH>', 'Amount of stETH to withdraw')
     .requiredOption('--wallet <address>', 'Wallet address (owner of withdrawal)')
+    .option('--with-approval', 'Output an approval tx before withdrawal request')
     .option('--pretty', 'Human-readable colored output')
     .action(async (opts) => {
       try {
@@ -83,16 +85,27 @@ export function makeWithdrawCommand(): Command {
           return;
         }
 
+        const from = opts.wallet as Address;
         const client = new LidoClient(getRpcUrl());
-        const tx = client.buildWithdrawTransaction(opts.amount, opts.wallet as Address);
-        const data = { ...tx, from: opts.wallet };
+        const requestTx = client.buildWithdrawTransaction(opts.amount, from, from);
+        const transactions = opts.withApproval
+          ? [
+              client.buildStEthApproveTransaction(opts.amount, CONTRACTS.withdrawalQueue, from),
+              requestTx,
+            ]
+          : [requestTx];
+
+        const data = {
+          flow: opts.withApproval ? 'approve_then_withdraw_request' : 'withdraw_request',
+          transactions,
+        };
 
         if (opts.pretty) {
           header(`Request Withdrawal: ${opts.amount} stETH -> ETH`);
           row('From', opts.wallet);
           row('Amount', `${opts.amount} stETH`);
-          row('Contract', tx.to);
-          row('Action', tx.description);
+          row('Tx Count', String(transactions.length));
+          row('Contract', requestTx.to);
           return;
         }
 

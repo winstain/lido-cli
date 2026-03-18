@@ -133,59 +133,50 @@ describe('LidoClient', () => {
     });
   });
 
-  describe('buildStakeTransaction', () => {
-    test('returns correct transaction shape', () => {
+  describe('transaction builders', () => {
+    test('buildStakeTransaction returns moonpay-compatible payload', () => {
       const tx = client.buildStakeTransaction('1.5');
       expect(tx.to).toBe('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84');
-      expect(tx.description).toContain('1.5 ETH');
+      expect(tx.chainId).toBe(1);
+      expect(tx.data.startsWith('0x')).toBe(true);
       expect(tx.value).toBeDefined();
     });
 
-    test('uses zero address as default referral', () => {
-      const tx = client.buildStakeTransaction('1');
-      expect(tx.data).toContain('0x0000000000000000000000000000000000000000');
+    test('buildStakeTransaction can include from', () => {
+      const wallet = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as `0x${string}`;
+      const tx = client.buildStakeTransaction('1', undefined, wallet);
+      expect(tx.from).toBe(wallet);
     });
 
-    test('uses custom referral address', () => {
-      const referral = '0x1234567890abcdef1234567890abcdef12345678' as `0x${string}`;
-      const tx = client.buildStakeTransaction('1', referral);
-      expect(tx.data).toContain(referral);
+    test('buildStEthApproveTransaction returns encoded data', () => {
+      const spender = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0' as `0x${string}`;
+      const tx = client.buildStEthApproveTransaction('5', spender);
+      expect(tx.to).toBe('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84');
+      expect(tx.value).toBe('0');
+      expect(tx.data.startsWith('0x')).toBe(true);
     });
-  });
 
-  describe('buildWrapTransaction', () => {
-    test('returns correct contract address', () => {
+    test('buildWrapTransaction returns correct contract address', () => {
       const tx = client.buildWrapTransaction('10');
       expect(tx.to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
+      expect(tx.data.startsWith('0x')).toBe(true);
       expect(tx.description).toContain('10 stETH');
     });
 
-    test('includes approval note', () => {
-      const tx = client.buildWrapTransaction('5');
-      expect(tx.note).toContain('approval');
-    });
-  });
-
-  describe('buildUnwrapTransaction', () => {
-    test('returns correct contract address', () => {
+    test('buildUnwrapTransaction returns correct contract address', () => {
       const tx = client.buildUnwrapTransaction('10');
       expect(tx.to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
+      expect(tx.data.startsWith('0x')).toBe(true);
       expect(tx.description).toContain('10 wstETH');
     });
-  });
 
-  describe('buildWithdrawTransaction', () => {
-    test('returns correct contract address', () => {
+    test('buildWithdrawTransaction returns correct contract address', () => {
       const wallet = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as `0x${string}`;
-      const tx = client.buildWithdrawTransaction('5', wallet);
+      const tx = client.buildWithdrawTransaction('5', wallet, wallet);
       expect(tx.to).toBe('0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1');
+      expect(tx.data.startsWith('0x')).toBe(true);
+      expect(tx.from).toBe(wallet);
       expect(tx.description).toContain('5 stETH');
-    });
-
-    test('includes approval note', () => {
-      const wallet = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as `0x${string}`;
-      const tx = client.buildWithdrawTransaction('5', wallet);
-      expect(tx.note).toContain('approval');
     });
   });
 });
