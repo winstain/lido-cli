@@ -51,6 +51,16 @@ export const stETHAbi = [
     type: 'function',
   },
   {
+    inputs: [
+      { name: '_spender', type: 'address' },
+      { name: '_amount', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [],
     name: 'totalSupply',
     outputs: [{ name: '', type: 'uint256' }],

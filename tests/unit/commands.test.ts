@@ -27,6 +27,7 @@ const mockBuildStakeTransaction = jest.fn();
 const mockBuildWrapTransaction = jest.fn();
 const mockBuildUnwrapTransaction = jest.fn();
 const mockBuildWithdrawTransaction = jest.fn();
+const mockBuildStEthApproveTransaction = jest.fn();
 
 jest.mock('../../src/api/client', () => ({
   LidoClient: jest.fn().mockImplementation(() => ({
@@ -42,6 +43,7 @@ jest.mock('../../src/api/client', () => ({
     buildWrapTransaction: mockBuildWrapTransaction,
     buildUnwrapTransaction: mockBuildUnwrapTransaction,
     buildWithdrawTransaction: mockBuildWithdrawTransaction,
+    buildStEthApproveTransaction: mockBuildStEthApproveTransaction,
   })),
 }));
 
@@ -182,7 +184,9 @@ describe('commands', () => {
       mockBuildStakeTransaction.mockReturnValue({
         to: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
         value: '1000000000000000000',
-        data: 'submit(0x0000000000000000000000000000000000000000)',
+        data: '0xaaaaaaaa',
+        chainId: 1,
+        from: WALLET,
         description: 'Stake 1 ETH via Lido to receive stETH',
       });
     });
@@ -246,9 +250,17 @@ describe('commands', () => {
     beforeEach(() => {
       mockBuildWrapTransaction.mockReturnValue({
         to: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
-        data: 'wrap(...)',
+        data: '0xbbbbbbbb',
+        value: '0',
+        chainId: 1,
         description: 'Wrap 10 stETH into wstETH',
-        note: 'Requires stETH approval for wstETH contract first',
+      });
+      mockBuildStEthApproveTransaction.mockReturnValue({
+        to: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+        data: '0xcccccccc',
+        value: '0',
+        chainId: 1,
+        description: 'Approve 10 stETH',
       });
     });
 
@@ -256,9 +268,25 @@ describe('commands', () => {
       const cmd = makeWrapCommand();
       await cmd.parseAsync(['--amount', '10'], { from: 'user' });
       const output = JSON.parse(stdoutOutput.join(''));
-      expect(output.to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
+      expect(output.flow).toBe('wrap');
+      expect(output.transactions[0].to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
       expect(output.estimatedOutput).toBeDefined();
       expect(output.rate).toBeDefined();
+    });
+
+    test('with-approval outputs two transactions', async () => {
+      const cmd = makeWrapCommand();
+      await cmd.parseAsync(['--amount', '10', '--wallet', WALLET, '--with-approval'], { from: 'user' });
+      const output = JSON.parse(stdoutOutput.join(''));
+      expect(output.flow).toBe('approve_then_wrap');
+      expect(output.transactions).toHaveLength(2);
+    });
+
+    test('with-approval requires wallet', async () => {
+      const cmd = makeWrapCommand();
+      await cmd.parseAsync(['--amount', '10', '--with-approval'], { from: 'user' });
+      const err = JSON.parse(stderrOutput[0]);
+      expect(err.code).toBe('INVALID_INPUT');
     });
 
     test('rejects zero amount', async () => {
@@ -311,7 +339,9 @@ describe('commands', () => {
     beforeEach(() => {
       mockBuildUnwrapTransaction.mockReturnValue({
         to: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
-        data: 'unwrap(...)',
+        data: '0xdddddddd',
+        value: '0',
+        chainId: 1,
         description: 'Unwrap 5 wstETH back to stETH',
       });
     });
@@ -320,8 +350,23 @@ describe('commands', () => {
       const cmd = makeUnwrapCommand();
       await cmd.parseAsync(['--amount', '5'], { from: 'user' });
       const output = JSON.parse(stdoutOutput.join(''));
-      expect(output.to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
+      expect(output.flow).toBe('unwrap');
+      expect(output.transactions[0].to).toBe('0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0');
       expect(output.estimatedOutput).toBeDefined();
+    });
+
+    test('includes from when wallet is provided', async () => {
+      mockBuildUnwrapTransaction.mockReturnValue({
+        to: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+        data: '0xdddddddd',
+        value: '0',
+        chainId: 1,
+        from: WALLET,
+      });
+      const cmd = makeUnwrapCommand();
+      await cmd.parseAsync(['--amount', '5', '--wallet', WALLET], { from: 'user' });
+      const output = JSON.parse(stdoutOutput.join(''));
+      expect(output.transactions[0].from).toBe(WALLET);
     });
 
     test('rejects negative amount', async () => {
@@ -557,23 +602,50 @@ describe('commands', () => {
     test('request outputs JSON', async () => {
       mockBuildWithdrawTransaction.mockReturnValue({
         to: '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1',
-        data: 'requestWithdrawals(...)',
+        data: '0xeeeeeeee',
+        value: '0',
+        chainId: 1,
+        from: WALLET,
         description: 'Request withdrawal of 5 stETH to ETH',
-        note: 'Requires stETH approval',
       });
       const cmd = makeWithdrawCommand();
       await cmd.parseAsync(['request', '--amount', '5', '--wallet', WALLET], { from: 'user' });
       const output = JSON.parse(stdoutOutput.join(''));
-      expect(output.to).toBe('0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1');
-      expect(output.from).toBe(WALLET);
+      expect(output.flow).toBe('withdraw_request');
+      expect(output.transactions[0].to).toBe('0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1');
+      expect(output.transactions[0].from).toBe(WALLET);
+    });
+
+    test('request with approval outputs two transactions', async () => {
+      mockBuildWithdrawTransaction.mockReturnValue({
+        to: '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1',
+        data: '0xeeeeeeee',
+        value: '0',
+        chainId: 1,
+        from: WALLET,
+      });
+      mockBuildStEthApproveTransaction.mockReturnValue({
+        to: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+        data: '0xcccccccc',
+        value: '0',
+        chainId: 1,
+        from: WALLET,
+      });
+      const cmd = makeWithdrawCommand();
+      await cmd.parseAsync(['request', '--amount', '5', '--wallet', WALLET, '--with-approval'], { from: 'user' });
+      const output = JSON.parse(stdoutOutput.join(''));
+      expect(output.flow).toBe('approve_then_withdraw_request');
+      expect(output.transactions).toHaveLength(2);
     });
 
     test('request pretty output', async () => {
       mockBuildWithdrawTransaction.mockReturnValue({
         to: '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1',
-        data: 'requestWithdrawals(...)',
+        data: '0xeeeeeeee',
+        value: '0',
+        chainId: 1,
+        from: WALLET,
         description: 'Request withdrawal of 5 stETH to ETH',
-        note: 'Requires stETH approval',
       });
       const cmd = makeWithdrawCommand();
       await cmd.parseAsync(['request', '--amount', '5', '--wallet', WALLET, '--pretty'], { from: 'user' });
