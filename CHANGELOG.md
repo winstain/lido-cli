@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/winstain/lido-cli/compare/v1.1.0...v1.1.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* trigger publish retry ([3960047](https://github.com/winstain/lido-cli/commit/3960047e145478a05d40ff65bd108b0ac6f31016))
+
 ## [1.1.0](https://github.com/winstain/lido-cli/compare/v1.0.0...v1.1.0) (2026-03-18)
 
 
