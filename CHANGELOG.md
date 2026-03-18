@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/winstain/lido-cli/compare/v1.1.1...v1.1.2) (2026-03-18)
+
+
+### Bug Fixes
+
+* remove registry-url to enable trusted publishing OIDC ([34e1d21](https://github.com/winstain/lido-cli/commit/34e1d2145b34ef65454aa498830e0dc55d3b8c9e))
+
 ## [1.1.1](https://github.com/winstain/lido-cli/compare/v1.1.0...v1.1.1) (2026-03-18)
 
 
