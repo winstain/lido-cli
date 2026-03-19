@@ -9,8 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "test": "jest --verbose",
-    "test:coverage": "jest --coverage"
+    "test": "jest --runInBand --verbose --testPathPatterns=tests/unit",
+    "test:coverage": "jest --runInBand --coverage --testPathPatterns=tests/unit"
   },
   "keywords": [
     "lido",
@@ -27,7 +27,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "type": "commonjs",
   "dependencies": {
