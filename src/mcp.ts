@@ -5,6 +5,8 @@ import { type Address } from 'viem';
 import { LidoClient } from './api/client';
 import { getRpcUrl } from './config/store';
 
+const pkg = require('../package.json');
+
 function getClient(): LidoClient {
   return new LidoClient(getRpcUrl());
 }
@@ -12,7 +14,7 @@ function getClient(): LidoClient {
 export async function startMcpServer() {
   const server = new McpServer({
     name: 'lido-cli',
-    version: '1.0.0',
+    version: pkg.version,
   });
 
   // Balance tool
