@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0](https://github.com/winstain/lido-cli/compare/lido-cli-v1.2.0...lido-cli-v1.3.0) (2026-03-20)
+
+
+### Features
+
+* add CI, Release Please, and trusted publishing ([9c21ad6](https://github.com/winstain/lido-cli/commit/9c21ad675bb48bba7c850158aaf81980dc8e69a1))
+* output moonpay-ready unsigned tx payloads ([9f1b1a3](https://github.com/winstain/lido-cli/commit/9f1b1a37f80b036e3d80070bb5ba12c8e92273f3))
+* verify trusted publishing pipeline ([730a23a](https://github.com/winstain/lido-cli/commit/730a23ac1c9eaa24162877e155d65b9929e36ba0))
+
+
+### Bug Fixes
+
+* publish without provenance from private repo ([604577d](https://github.com/winstain/lido-cli/commit/604577da7c32976f0f9c1ea0ce72823efb895b2c))
+* remove registry-url to enable trusted publishing OIDC ([abb113b](https://github.com/winstain/lido-cli/commit/abb113bb585b73e9cc453e836de5a8d70f848b3f))
+* trigger publish retry ([a729a1c](https://github.com/winstain/lido-cli/commit/a729a1ca475f5d49f4ce95482cf4343b726e8f62))
+* upgrade npm in CI for trusted publishing support ([5714284](https://github.com/winstain/lido-cli/commit/5714284570cb59a153de3ec2cf5a2225d9e743dc))
+
 ## [1.2.0](https://github.com/winstain/lido-cli/compare/v1.1.3...v1.2.0) (2026-03-20)
 
 
