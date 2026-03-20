@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/winstain/lido-cli/compare/v1.1.3...v1.2.0) (2026-03-20)
+
+
+### Features
+
+* output moonpay-ready unsigned tx payloads ([9f1b1a3](https://github.com/winstain/lido-cli/commit/9f1b1a37f80b036e3d80070bb5ba12c8e92273f3))
+
+
+### Bug Fixes
+
+* publish without provenance from private repo ([604577d](https://github.com/winstain/lido-cli/commit/604577da7c32976f0f9c1ea0ce72823efb895b2c))
+
 ## [1.1.3](https://github.com/winstain/lido-cli/compare/v1.1.2...v1.1.3) (2026-03-18)
 
 
